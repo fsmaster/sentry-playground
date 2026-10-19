@@ -19,7 +19,7 @@ export default defineConfig({
       org: process.env.SENTRY_ORG,
       project: "playground-browser",
       authToken: process.env.SENTRY_AUTH_TOKEN,
-      release: { name: process.env.RELEASE, setCommits: { auto: true } },
+      release: { name: process.env.RELEASE }, // commits are set by the workflow
       sourcemaps: { filesToDeleteAfterUpload: ["../dist/**/*.map"] },
       disable: !process.env.SENTRY_AUTH_TOKEN,
     }),
