@@ -1,0 +1,77 @@
+:root {
+  --bg: #f7f6fb;
+  --card: #ffffff;
+  --text: #1f1a2e;
+  --muted: #6b6480;
+  --line: #e4e0ee;
+  --accent: #6c5fc7;
+  --ok: #1d8a5b;
+  --err: #c43d4b;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17141f;
+    --card: #221d2e;
+    --text: #ece9f4;
+    --muted: #a49cb8;
+    --line: #362f47;
+    --accent: #9d8ff0;
+    --ok: #4cc38a;
+    --err: #ff7a85;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1180px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { margin: 0 0 8px; font-size: 30px; }
+h2 { margin: 40px 0 4px; font-size: 21px; }
+a { color: var(--accent); }
+.lead { max-width: 760px; color: var(--muted); }
+.sub { margin: 0 0 16px; color: var(--muted); }
+.toggle { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.card header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card h3 { margin: 0; font-size: 16px; }
+.card p { margin: 0; font-size: 14px; }
+.look { color: var(--muted); }
+.badge { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 8px; }
+button {
+  font: inherit;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+button:disabled { opacity: 0.5; cursor: wait; }
+output { min-height: 22px; font-size: 13px; overflow-wrap: anywhere; }
+output a { margin-right: 8px; }
+output.busy { color: var(--muted); }
+output.err { color: var(--err); }
+output.ok code { color: var(--ok); }
+#replay-demo {
+  margin: 16px 0;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+}
+#replay-demo input { font: inherit; padding: 6px; width: min(320px, 100%); }
+footer { margin-top: 48px; color: var(--muted); font-size: 13px; }

@@ -1,0 +1,164 @@
+[
+  {
+    "id": "python",
+    "title": "Python",
+    "project": "sdk-python",
+    "projectId": "4512284737863680",
+    "repo": "fsmaster/sentry-sample-python",
+    "mode": "server",
+    "service": "sample-python:8080",
+    "kinds": [
+      "error",
+      "message"
+    ],
+    "blurb": "Plain Python script with sentry-sdk. Unhandled exception with local variables in every frame."
+  },
+  {
+    "id": "django",
+    "title": "Django",
+    "project": "sdk-django",
+    "projectId": "4512284737929216",
+    "repo": "fsmaster/sentry-sample-django",
+    "mode": "server",
+    "service": "sample-django:8080",
+    "kinds": [
+      "error"
+    ],
+    "blurb": "Django view that crashes. Request, URL, ORM query spans are picked up automatically."
+  },
+  {
+    "id": "php",
+    "title": "PHP",
+    "project": "sdk-php",
+    "projectId": "4512284737994752",
+    "repo": "fsmaster/sentry-sample-php",
+    "mode": "server",
+    "service": "sample-php:8080",
+    "kinds": [
+      "error"
+    ],
+    "blurb": "Plain PHP with sentry/sentry from composer, no framework."
+  },
+  {
+    "id": "ruby",
+    "title": "Ruby",
+    "project": "sdk-ruby",
+    "projectId": "4512284738125824",
+    "repo": "fsmaster/sentry-sample-ruby",
+    "mode": "server",
+    "service": "sample-ruby:8080",
+    "kinds": [
+      "error"
+    ],
+    "blurb": "Small Ruby app with sentry-ruby gem."
+  },
+  {
+    "id": "go",
+    "title": "Go",
+    "project": "sdk-go",
+    "projectId": "4512284738256896",
+    "repo": "fsmaster/sentry-sample-go",
+    "mode": "server",
+    "service": "sample-go:8080",
+    "kinds": [
+      "error",
+      "panic"
+    ],
+    "blurb": "Go net/http server with sentry-go. Returned error and recovered panic."
+  },
+  {
+    "id": "rust",
+    "title": "Rust",
+    "project": "sdk-rust",
+    "projectId": "4512284738387968",
+    "repo": "fsmaster/sentry-sample-rust",
+    "mode": "server",
+    "service": "sample-rust:8080",
+    "kinds": [
+      "error",
+      "panic"
+    ],
+    "blurb": "Rust binary with the sentry crate. anyhow error and a panic."
+  },
+  {
+    "id": "native",
+    "title": "Native (C/C++)",
+    "project": "sdk-native",
+    "projectId": "4512284738519040",
+    "repo": "fsmaster/sentry-sample-native",
+    "mode": "server",
+    "service": "sample-native:8080",
+    "kinds": [
+      "crash",
+      "error"
+    ],
+    "blurb": "C program with sentry-native + crashpad. Real segfault, minidump, debug symbols uploaded from CI."
+  },
+  {
+    "id": "aws-lambda",
+    "title": "AWS Lambda",
+    "project": "sdk-aws-lambda",
+    "projectId": "4512284738584576",
+    "repo": "fsmaster/sentry-sample-aws-lambda",
+    "mode": "server",
+    "service": "sample-aws-lambda:8080",
+    "kinds": [
+      "error",
+      "timeout"
+    ],
+    "blurb": "Python Lambda in the official AWS base image (Runtime Interface Emulator), so no AWS account needed.",
+    "path": "/2015-03-31/functions/function/invocations"
+  },
+  {
+    "id": "android",
+    "title": "Android (Kotlin)",
+    "project": "sdk-android",
+    "projectId": "4512284738715648",
+    "repo": "fsmaster/sentry-sample-android",
+    "mode": "ci",
+    "workflow": "trigger.yml",
+    "kinds": [
+      "error"
+    ],
+    "blurb": "Kotlin app on an Android emulator in GitHub Actions. ProGuard mapping uploaded, so stack trace is readable."
+  },
+  {
+    "id": "react-native",
+    "title": "React Native",
+    "project": "sdk-react-native",
+    "projectId": "4512284738846720",
+    "repo": "fsmaster/sentry-sample-react-native",
+    "mode": "ci",
+    "workflow": "trigger.yml",
+    "kinds": [
+      "error"
+    ],
+    "blurb": "React Native app on Android emulator in GitHub Actions. JS source maps uploaded by the Gradle plugin."
+  },
+  {
+    "id": "flutter",
+    "title": "Flutter",
+    "project": "sdk-flutter",
+    "projectId": "4512284738912256",
+    "repo": "fsmaster/sentry-sample-flutter",
+    "mode": "ci",
+    "workflow": "trigger.yml",
+    "kinds": [
+      "error"
+    ],
+    "blurb": "Flutter app with sentry_flutter, built and run in GitHub Actions. Dart debug symbols uploaded."
+  },
+  {
+    "id": "unreal",
+    "title": "Unreal Engine",
+    "project": "sdk-unreal",
+    "projectId": "4512284739043328",
+    "repo": "fsmaster/sentry-sample-unreal",
+    "mode": "ci",
+    "workflow": "trigger.yml",
+    "kinds": [
+      "crash"
+    ],
+    "blurb": "UE5 game with the Sentry plugin. The packaged build is crashed on a Windows runner, PDBs live in Sentry."
+  }
+]

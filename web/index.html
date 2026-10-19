@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sentry Playground</title>
+    <meta name="description" content="Generate real Sentry events: errors, traces, logs, replays, crashes, and one sample per SDK." />
+  </head>
+  <body>
+    <main>
+      <h1>Sentry Playground</h1>
+      <p class="lead">
+        Every button sends a <b>real</b> event to Sentry from a small sample app. Each click gets new run id,
+        so you always get new event, not a duplicate. Source for everything is on
+        <a href="https://github.com/fsmaster/sentry-playground">GitHub</a>.
+      </p>
+      <label class="toggle"><input type="checkbox" id="fresh" checked /> New issue every click (puts the run id in the fingerprint)</label>
+
+      <h2>1. What Sentry can show</h2>
+      <p class="sub">Browser app (this page) + Node backend + a C program for crashes.</p>
+      <section id="showcase" class="grid"></section>
+
+      <div id="replay-demo" hidden>
+        <input placeholder="type here" /> <button type="button">Submit</button>
+      </div>
+
+      <h2>2. One sample per SDK</h2>
+      <p class="sub">Error-only samples. Each repo has its own guide you can follow with copy-paste.</p>
+      <section id="sdks" class="grid"></section>
+
+      <footer>Links to Sentry open the fsmaster org, you need access to see them.</footer>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

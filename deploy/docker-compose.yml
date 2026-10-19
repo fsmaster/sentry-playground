@@ -1,0 +1,51 @@
+# Runs on fsmaster.com. nginx sends /sentry/ to 127.0.0.1:3090.
+# DSNs and the GitHub token live in .env next to this file (see .env.example).
+x-sample: &sample
+  restart: unless-stopped
+  environment: &env
+    SENTRY_ENVIRONMENT: playground
+  mem_limit: 256m
+
+services:
+  dashboard:
+    image: ghcr.io/fsmaster/sentry-playground:latest
+    restart: unless-stopped
+    ports: ["127.0.0.1:3090:3090"]
+    environment:
+      SENTRY_DSN: ${DSN_NODE}
+      SENTRY_ENVIRONMENT: playground
+      GH_DISPATCH_TOKEN: ${GH_DISPATCH_TOKEN}
+    mem_limit: 384m
+
+  sample-python:
+    <<: *sample
+    image: ghcr.io/fsmaster/sentry-sample-python:latest
+    environment: { <<: *env, SENTRY_DSN: "${DSN_PYTHON}" }
+  sample-django:
+    <<: *sample
+    image: ghcr.io/fsmaster/sentry-sample-django:latest
+    environment: { <<: *env, SENTRY_DSN: "${DSN_DJANGO}" }
+  sample-php:
+    <<: *sample
+    image: ghcr.io/fsmaster/sentry-sample-php:latest
+    environment: { <<: *env, SENTRY_DSN: "${DSN_PHP}" }
+  sample-ruby:
+    <<: *sample
+    image: ghcr.io/fsmaster/sentry-sample-ruby:latest
+    environment: { <<: *env, SENTRY_DSN: "${DSN_RUBY}" }
+  sample-go:
+    <<: *sample
+    image: ghcr.io/fsmaster/sentry-sample-go:latest
+    environment: { <<: *env, SENTRY_DSN: "${DSN_GO}" }
+  sample-rust:
+    <<: *sample
+    image: ghcr.io/fsmaster/sentry-sample-rust:latest
+    environment: { <<: *env, SENTRY_DSN: "${DSN_RUST}" }
+  sample-native:
+    <<: *sample
+    image: ghcr.io/fsmaster/sentry-sample-native:latest
+    environment: { <<: *env, SENTRY_DSN: "${DSN_NATIVE}" }
+  sample-aws-lambda:
+    <<: *sample
+    image: ghcr.io/fsmaster/sentry-sample-aws-lambda:latest
+    environment: { <<: *env, SENTRY_DSN: "${DSN_AWS_LAMBDA}" }
