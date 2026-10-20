@@ -17,7 +17,7 @@ Sentry.init({
   ],
   tracesSampleRate: 1.0,
   // only our own API gets the sentry-trace / baggage headers
-  tracePropagationTargets: [/^\/sentry\/api\//],
+  tracePropagationTargets: [/\/sentry\/api\//],
   profileSessionSampleRate: 1.0,
   profileLifecycle: "trace",
   replaysSessionSampleRate: 0,
