@@ -13,7 +13,7 @@ It has two parts:
 2. **One sample per SDK.** Every SDK has its own small repo with a step by step guide. On the dashboard
    each one has a button that runs that sample.
 
-Every click gets a new run id. It goes into the event message, a `run_id` tag and (checkbox on the page)
+Every click gets new run id. It goes into the event message, a `run_id` tag and (checkbox on the page)
 the fingerprint, so each click is a separate new issue and not "+1 event" to an old one.
 
 ## SDK samples
@@ -33,7 +33,7 @@ the fingerprint, so each click is a separate new issue and not "+1 event" to an 
 | Flutter | [sentry-sample-flutter](https://github.com/fsmaster/sentry-sample-flutter) | GitHub Actions, Linux | obfuscated Dart + debug symbols |
 | Unreal Engine | [sentry-sample-unreal](https://github.com/fsmaster/sentry-sample-unreal) | GitHub Actions, Windows | packaged UE5 game crash, PDBs |
 
-Apple (iOS/macOS) is not here yet, it needs a Mac.
+Apple (iOS/macOS) is not here yet, for it I need a Mac.
 
 "server" samples run as containers next to the dashboard and answer in a second. "GitHub Actions" ones
 need an emulator or Windows, so the button starts the workflow in that repo, the event comes when the
@@ -72,13 +72,20 @@ plugins: [
 ```
 
 The plugin injects a Debug ID into every JS file and its `.map`, uploads the maps and deletes them, so
-they are never served to users. In Docker the token is passed as build secret
+they are never served to users. Result, the minified `index-C4gKBM5U.js` turns back into `checkout.js` line 10:
+
+![Source-mapped stack trace](docs/img/sourcemaps.png)
+
+ In Docker the token is passed as build secret
 (`RUN --mount=type=secret`), it doesn't stay in any image layer.
 
 ### Distributed tracing
 
 Browser SDK adds `sentry-trace` and `baggage` headers to requests that match `tracePropagationTargets`.
-Node SDK continues the trace from those headers. Result is one trace with both sides.
+Node SDK continues the trace from those headers. Result is one trace with both sides: the click in the
+browser, the `fetch`, then Express middleware, handler, SQL queries and the outgoing HTTP call:
+
+![Distributed trace](docs/img/trace.png)
 
 ```js
 // web/src/sentry.js
@@ -128,6 +135,12 @@ repo and pushed to GHCR, the same job creates the Sentry release with commits.
 
 For the CI buttons the server needs a fine-grained GitHub token with **Actions: Read and write** on only
 the 4 CI repos. It can start workflows and nothing else.
+
+## Privacy
+
+All playground projects have **Prevent Storing of IP Addresses** on (Settings → Projects → Security &
+Privacy). The browser SDK sends `sendDefaultPii: false`, but Sentry still infers the client IP from the
+request unless this switch is on. Replays mask all text and inputs by default.
 
 ## Limits
 
