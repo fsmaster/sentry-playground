@@ -46,7 +46,7 @@ jobs:
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: fsmaster
-          SENTRY_PROJECTS: playground-browser playground-node
         with:
           release: ${{ env.RELEASE }}
+          projects: playground-browser playground-node
           environment: playground
