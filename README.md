@@ -80,10 +80,6 @@ they are never served to users. In Docker the token is passed as build secret
 Browser SDK adds `sentry-trace` and `baggage` headers to requests that match `tracePropagationTargets`.
 Node SDK continues the trace from those headers. Result is one trace with both sides.
 
-The regex is matched against the **full** URL (`https://fsmaster.com/sentry/api/...`), even when you call
-`fetch("/sentry/api/...")`. My first version had `^\/sentry\/api\/` with `^`, it never matched and the
-backend made separate traces. No error anywhere, the waterfall just stops at the browser `http.client` span.
-
 ```js
 // web/src/sentry.js
 tracePropagationTargets: [/\/sentry\/api\//],
