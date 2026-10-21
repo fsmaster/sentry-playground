@@ -101,3 +101,4 @@ footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
 #byo-state:empty { display: none; }
 #byo-state { margin: 6px 0 0; }
 @media (max-width: 600px) { .toggle + .toggle { margin-left: 0; display: flex; margin-top: 6px; } }
+#byo-msg:empty { display: none; }

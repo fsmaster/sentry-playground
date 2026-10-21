@@ -6,7 +6,9 @@ const OWN_DSN = "https://58126ea7ff5f04d5eef344b8c18eb2f8@o4512264579579904.inge
 const SAAS = /^https:\/\/([0-9a-f]{32})@((?:o\d+\.ingest(?:\.[a-z]{2})?\.)?sentry\.io)\/(\d+)$/;
 export function parseDsn(value) {
   const m = SAAS.exec(String(value || "").trim());
-  return m ? { dsn: m[0], projectId: m[3] } : null;
+  if (!m) return null;
+  const org = /^o(\d+)\./.exec(m[2]); // o123.ingest.us.sentry.io -> org id 123
+  return { dsn: m[0], projectId: m[3], orgId: org && org[1] };
 }
 
 // "Use my DSN" lives in this browser only. The page reloads after a change,
@@ -27,11 +29,11 @@ export function saveByo(cfg) {
 }
 const saved = savedByo();
 const parsed = saved.on && parseDsn(saved.dsn);
-export const BYO = parsed ? { ...parsed, org: (saved.org || "").trim() } : null;
+export const BYO = parsed || null;
 
-// Links into Sentry. Without an org slug sentry.io redirects to the org you
-// used last and keeps the ?project= filter.
-export const ORG = BYO ? (BYO.org ? `https://${BYO.org}.sentry.io` : "https://sentry.io") : "https://fsmaster.sentry.io";
+// Links into Sentry. o<org id>.sentry.io redirects to <slug>.sentry.io and
+// keeps ?project=, so the DSN alone is enough, no slug to ask for.
+export const ORG = BYO ? (BYO.orgId ? `https://o${BYO.orgId}.sentry.io` : "https://sentry.io") : "https://fsmaster.sentry.io";
 export const project = (ownId) => (BYO ? BYO.projectId : ownId);
 export const BROWSER_PROJECT = project("4512284737470464");
 export const NODE_PROJECT = project("4512284737601536");

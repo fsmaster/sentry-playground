@@ -41,15 +41,17 @@ job is done (3-8 min).
 
 ## Use my DSN (send to your own Sentry)
 
-Checkbox **Use my DSN** on the page (off by default). Paste a DSN of any project in your Sentry, optionally
-your org slug for the links, press Apply. Then:
+Checkbox **Use my DSN** on the page (off by default). Paste a DSN of any project in your Sentry, press
+Apply. Then:
 
 - this page inits the browser SDK with your DSN (page reloads, SDK can be initialised once per page)
 - the Node backend runs each action in a short-lived worker process with your DSN
   (`server/byo-worker.js`). The Node SDK is global per process, a worker is the simple honest way to get
   spans + errors + check-ins into another project
 - server samples get your DSN in the request and use a separate client for that one event
-- links (Issue, Trace, Logs...) open your org
+- links (Issue, Trace, Logs...) open your org. They are built from the DSN alone: the `o123` in
+  `o123.ingest.us.sentry.io` is your org id, and `https://o123.sentry.io/...` redirects to
+  `https://<your-slug>.sentry.io/...` keeping the `?project=` filter
 
 Project platform doesn't matter, a Python project takes JS events fine.
 

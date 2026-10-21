@@ -11,12 +11,10 @@ const fresh = () => document.querySelector("#fresh").checked;
 const byoBox = document.querySelector("#byo-box");
 const byoCheck = document.querySelector("#byo");
 const byoDsn = document.querySelector("#byo-dsn");
-const byoOrg = document.querySelector("#byo-org");
 const byoMsg = document.querySelector("#byo-msg");
 const saved = savedByo();
 byoCheck.checked = !!BYO;
 byoDsn.value = saved.dsn || "";
-byoOrg.value = saved.org || "";
 byoBox.hidden = !byoCheck.checked;
 
 byoCheck.onchange = () => {
@@ -33,18 +31,12 @@ document.querySelector("#byo-apply").onclick = () => {
     byoMsg.textContent = "Doesn't look like a sentry.io DSN: https://<key>@o123.ingest.us.sentry.io/456";
     return;
   }
-  const org = byoOrg.value.trim().toLowerCase();
-  if (org && !/^[a-z0-9][a-z0-9-]*$/.test(org)) {
-    byoMsg.className = "err";
-    byoMsg.textContent = "Org slug is the part before .sentry.io in your Sentry URL";
-    return;
-  }
-  saveByo({ on: true, dsn: byoDsn.value.trim(), org });
+  saveByo({ on: true, dsn: byoDsn.value.trim() });
   location.reload();
 };
 if (BYO) {
   document.querySelector("#byo-state").innerHTML =
-    `Sending to <b>your</b> project <code>${BYO.projectId}</code>. Links open ${ORG.replace("https://", "")}.`;
+    `Sending to <b>your</b> project <code>${BYO.projectId}</code>.`;
 }
 
 // --- cards --------------------------------------------------------------------
