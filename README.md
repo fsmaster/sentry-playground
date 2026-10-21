@@ -39,6 +39,28 @@ Apple (iOS/macOS) is not here yet, for it I need a Mac.
 need an emulator or Windows, so the button starts the workflow in that repo, the event comes when the
 job is done (3-8 min).
 
+## Use my DSN (send to your own Sentry)
+
+Checkbox **Use my DSN** on the page (off by default). Paste a DSN of any project in your Sentry, optionally
+your org slug for the links, press Apply. Then:
+
+- this page inits the browser SDK with your DSN (page reloads, SDK can be initialised once per page)
+- the Node backend runs each action in a short-lived worker process with your DSN
+  (`server/byo-worker.js`). The Node SDK is global per process, a worker is the simple honest way to get
+  spans + errors + check-ins into another project
+- server samples get your DSN in the request and use a separate client for that one event
+- links (Issue, Trace, Logs...) open your org
+
+Project platform doesn't matter, a Python project takes JS events fine.
+
+What you don't get: the 4 CI samples (they run in our GitHub Actions and upload symbols into our org) and
+readable minified/native frames, because our source maps and debug symbols live in our org. Watch your alert
+rules, "new issue every click" means exactly that.
+
+DSN is kept only in your browser (localStorage). The server accepts only `sentry.io` DSNs
+(`server/dsn.js`): the DSN host is where our server sends requests, a free-form URL would let anyone make it
+call internal addresses.
+
 ## Part 1: the features
 
 | Button | What happens | Where to look in Sentry |

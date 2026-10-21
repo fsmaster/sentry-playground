@@ -1,15 +1,54 @@
-import "./sentry.js";
+import { ORG, BYO, project, parseDsn, savedByo, saveByo } from "./sentry.js";
 import "./style.css";
 import { SHOWCASE, api } from "./showcase.js";
 import SDKS from "./sdks.json";
-
-const ORG = "https://fsmaster.sentry.io";
 
 // New id every click: goes to the message, a run_id tag and the fingerprint.
 const newRun = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 const fresh = () => document.querySelector("#fresh").checked;
 
-function card({ title, what, look, badge, buttons, extra = "" }) {
+// --- "Use my DSN" -------------------------------------------------------------
+const byoBox = document.querySelector("#byo-box");
+const byoCheck = document.querySelector("#byo");
+const byoDsn = document.querySelector("#byo-dsn");
+const byoOrg = document.querySelector("#byo-org");
+const byoMsg = document.querySelector("#byo-msg");
+const saved = savedByo();
+byoCheck.checked = !!BYO;
+byoDsn.value = saved.dsn || "";
+byoOrg.value = saved.org || "";
+byoBox.hidden = !byoCheck.checked;
+
+byoCheck.onchange = () => {
+  byoBox.hidden = !byoCheck.checked;
+  // switching off takes effect right away, switching on waits for Apply
+  if (!byoCheck.checked && BYO) {
+    saveByo({ ...savedByo(), on: false });
+    location.reload();
+  }
+};
+document.querySelector("#byo-apply").onclick = () => {
+  if (!parseDsn(byoDsn.value)) {
+    byoMsg.className = "err";
+    byoMsg.textContent = "Doesn't look like a sentry.io DSN: https://<key>@o123.ingest.us.sentry.io/456";
+    return;
+  }
+  const org = byoOrg.value.trim().toLowerCase();
+  if (org && !/^[a-z0-9][a-z0-9-]*$/.test(org)) {
+    byoMsg.className = "err";
+    byoMsg.textContent = "Org slug is the part before .sentry.io in your Sentry URL";
+    return;
+  }
+  saveByo({ on: true, dsn: byoDsn.value.trim(), org });
+  location.reload();
+};
+if (BYO) {
+  document.querySelector("#byo-state").innerHTML =
+    `Sending to <b>your</b> project <code>${BYO.projectId}</code>. Links open ${ORG.replace("https://", "")}.`;
+}
+
+// --- cards --------------------------------------------------------------------
+function card({ title, what, look, badge, buttons, extra = "", disabled = "" }) {
   const el = document.createElement("article");
   el.className = "card";
   el.innerHTML = `
@@ -18,11 +57,12 @@ function card({ title, what, look, badge, buttons, extra = "" }) {
     <p class="look"><b>Where to look:</b> ${look}</p>
     ${extra}
     <div class="actions"></div>
-    <output></output>`;
+    <output>${disabled}</output>`;
   const out = el.querySelector("output");
   for (const [label, fn] of buttons) {
     const b = document.createElement("button");
     b.textContent = label;
+    b.disabled = !!disabled;
     b.onclick = async () => {
       const run = newRun();
       b.disabled = true;
@@ -50,25 +90,28 @@ for (const s of SHOWCASE) {
   g1.append(card({ ...s, buttons: [["Generate", (run) => s.run(run, fresh())]] }));
 }
 
+const issues = (projectId, run) =>
+  `${ORG}/issues/?project=${projectId}${run ? `&query=run_id%3A${run}` : ""}&statsPeriod=7d`;
+
 const g2 = document.querySelector("#sdks");
 for (const s of SDKS) {
   const ci = s.mode === "ci";
+  const pid = project(s.projectId);
   g2.append(
     card({
       title: s.title,
       what: s.blurb,
-      look: `<a href="${ORG}/issues/?project=${s.projectId}&statsPeriod=24h" target="_blank" rel="noopener">${s.project} issues ↗</a>`,
+      look: `<a href="${issues(pid)}" target="_blank" rel="noopener">${BYO ? "your project" : s.project} issues ↗</a>`,
       badge: ci ? "runs in CI · ~5 min" : "live",
       extra: `<p class="guide"><a href="https://github.com/${s.repo}#readme" target="_blank" rel="noopener">Step by step guide ↗</a></p>`,
+      // CI builds upload symbols into our org with our token, so not with a visitor's DSN
+      disabled: ci && BYO ? "Not with your DSN: it runs in our CI. Fork the repo to run it with yours." : "",
       buttons: s.kinds.map((kind) => [
         kind,
         async (run) => {
           const r = await api(`sdk/${s.id}`, { run, fresh: fresh(), kind });
           if (r.ci) return [["CI run", r.ci], ["event shows up when the job finishes"]];
-          return [
-            ["Issue", `${ORG}/issues/?project=${s.projectId}&query=run_id%3A${run}&statsPeriod=24h`],
-            r.event_id ? [`event ${String(r.event_id).slice(0, 8)}`] : ["sent"],
-          ];
+          return [["Issue", issues(pid, run)], r.event_id ? [`event ${String(r.event_id).slice(0, 8)}`] : ["sent"]];
         },
       ]),
     }),

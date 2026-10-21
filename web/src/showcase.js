@@ -1,4 +1,4 @@
-import { Sentry, ORG, BROWSER_PROJECT, NODE_PROJECT } from "./sentry.js";
+import { Sentry, ORG, BROWSER_PROJECT, NODE_PROJECT, BYO, project } from "./sentry.js";
 import { checkout } from "./checkout.js";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -7,7 +7,8 @@ export async function api(path, body) {
   const r = await fetch(`/sentry/api/${path}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
+    // with "Use my DSN" the server sends to the visitor's project instead of ours
+    body: JSON.stringify(BYO ? { ...body, dsn: BYO.dsn } : body),
   });
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
@@ -24,7 +25,7 @@ function capture(err, run, fresh) {
 }
 
 const issues = (project, run) =>
-  `${ORG}/issues/?project=${project}&query=run_id%3A${run}&statsPeriod=24h`;
+  `${ORG}/issues/?project=${project}&query=run_id%3A${run}&statsPeriod=7d`;
 const trace = (id) => `${ORG}/explore/traces/trace/${id}/`;
 
 function fib(n) {
@@ -102,7 +103,7 @@ export const SHOWCASE = [
       Sentry.logger.info(Sentry.logger.fmt`User opened checkout, run ${run}`, { page: "checkout" });
       Sentry.logger.warn("Coupon field is empty", { run });
       await api("showcase/logs", { run });
-      return [["Logs", `${ORG}/explore/logs/?project=${BROWSER_PROJECT}&project=${NODE_PROJECT}&logsQuery=${run}&statsPeriod=1h`]];
+      return [["Logs", `${ORG}/explore/logs/?project=${BROWSER_PROJECT}&project=${NODE_PROJECT}&logsQuery=${run}&statsPeriod=24h`]];
     },
   },
   {
@@ -153,7 +154,7 @@ export const SHOWCASE = [
         fib(29);
         await api("showcase/profile", { run });
       });
-      return [["Trace", trace(traceId)], ["Profiles", `${ORG}/explore/profiling/`]];
+      return [["Trace", trace(traceId)], ["Profiles", `${ORG}/explore/profiling/?project=${BROWSER_PROJECT}`]];
     },
   },
   {
@@ -163,7 +164,7 @@ export const SHOWCASE = [
     look: "Explore → Metrics, pick checkout.click or checkout.basket_cents.",
     async run(run) {
       await api("showcase/metrics", { run });
-      return [["Metrics", `${ORG}/explore/metrics/`]];
+      return [["Metrics", `${ORG}/explore/metrics/?project=${NODE_PROJECT}`]];
     },
   },
   {
@@ -173,7 +174,7 @@ export const SHOWCASE = [
     look: "Insights → Crons → playground-nightly-report.",
     async run(run) {
       await api("showcase/cron", { run });
-      return [["Crons", `${ORG}/insights/crons/`]];
+      return [["Crons", `${ORG}/insights/crons/?project=${NODE_PROJECT}`]];
     },
   },
   {
@@ -183,7 +184,7 @@ export const SHOWCASE = [
     look: "Issue in sdk-native: real function names and lines from the minidump.",
     async run(run, fresh) {
       await api("sdk/native", { run, fresh, kind: "crash" });
-      return [["Issue", issues("4512284738519040", run)], ["(minidump takes ~20 s to process)"]];
+      return [["Issue", issues(project("4512284738519040"), run)], [BYO ? "(our debug symbols are not in your org, frames will be addresses)" : "(minidump takes ~20 s to process)"]];
     },
   },
 ];

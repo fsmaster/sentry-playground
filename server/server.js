@@ -1,8 +1,10 @@
 import * as Sentry from "@sentry/node";
 import express from "express";
-import { DatabaseSync } from "node:sqlite";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { execFile } from "node:child_process";
+import { showcase, scoped } from "./showcase.js";
+import { parseDsn } from "./dsn.js";
 
 const SDKS = JSON.parse(readFileSync(new URL("../web/src/sdks.json", import.meta.url)));
 const PORT = process.env.PORT || 3090;
@@ -27,89 +29,58 @@ api.use((req, res, next) => {
   next();
 });
 
-// Every click carries a run id. It goes into the message and a tag, and when
-// "fresh" is on also into the fingerprint, so each click is a new issue.
-function scoped(req, fn) {
-  const { run = "manual", fresh = true } = req.body || {};
-  return Sentry.withScope((scope) => {
-    scope.setTag("run_id", run);
-    if (fresh) scope.setFingerprint(["{{ default }}", run]);
-    return fn(run, scope);
+// "Use my DSN": the visitor's DSN comes in the body. Validated, then the
+// action runs in a short-lived worker process initialised with that DSN.
+let workers = 0;
+function runWorker(job, req) {
+  return new Promise((resolve, reject) => {
+    workers++;
+    execFile(
+      process.execPath,
+      ["--disable-warning=ExperimentalWarning", "--import", "./server/instrument.js", "server/byo-worker.js", JSON.stringify({
+        ...job,
+        sentryTrace: req.get("sentry-trace"),
+        baggage: req.get("baggage"),
+      })],
+      {
+        cwd: fileURLToPath(new URL("..", import.meta.url)),
+        timeout: 20_000,
+        env: { ...process.env, SENTRY_DSN: job.dsn, SENTRY_ENVIRONMENT: "playground" },
+      },
+      (err, stdout) => {
+        workers--;
+        if (err) return reject(err);
+        try {
+          resolve(JSON.parse(stdout || "{}"));
+        } catch {
+          resolve({});
+        }
+      },
+    );
   });
 }
 
-// --- group 1: feature showcase (this Node app is the "backend") ------------
-const db = new DatabaseSync(":memory:");
-db.exec("create table orders(id integer primary key, item text, cents int)");
-db.exec("insert into orders(item, cents) values ('coffee', 450), ('bagel', 300)");
-
-function sqlSpan(sql) {
-  return Sentry.startSpan(
-    { name: sql, op: "db.sql.query", attributes: { "db.system": "sqlite" } },
-    () => db.prepare(sql).all(),
-  );
+function visitorDsn(req, res) {
+  if (!req.body?.dsn) return undefined;
+  const parsed = parseDsn(req.body.dsn);
+  if (!parsed) {
+    res.status(400).json({ error: "This DSN is not a sentry.io DSN (https://<key>@o123.ingest.sentry.io/456)" });
+    return null;
+  }
+  return parsed.dsn;
 }
-
-function fib(n) {
-  return n < 2 ? n : fib(n - 1) + fib(n - 2);
-}
-
-const showcase = {
-  error: (run) => {
-    try {
-      const order = sqlSpan("select * from orders where id = 42")[0];
-      return order.cents; // order is undefined -> TypeError
-    } catch (err) {
-      err.message = `${err.message} [run ${run}]`;
-      return { event_id: Sentry.captureException(err) };
-    }
-  },
-
-  trace: async (run) => {
-    // Called from the browser inside a span, so this request continues the
-    // browser's trace: one trace, spans from both sides.
-    sqlSpan("select * from orders");
-    await Sentry.startSpan({ name: "price basket", op: "function" }, async () => {
-      sqlSpan("select sum(cents) from orders");
-      await new Promise((r) => setTimeout(r, 120));
-    });
-    await fetch(`http://127.0.0.1:${PORT}/sentry/api/health`); // http.client span
-    return { trace_id: Sentry.getActiveSpan() && Sentry.spanToJSON(Sentry.getActiveSpan()).trace_id };
-  },
-
-  logs: (run) => {
-    Sentry.logger.info(Sentry.logger.fmt`Order received for run ${run}`, { cents: 450 });
-    Sentry.logger.warn("Stock is low", { item: "bagel", left: 2, run });
-    Sentry.logger.error("Payment provider timeout", { provider: "stripe-fake", run });
-    return { logs: 3 };
-  },
-
-  profile: (run) =>
-    Sentry.startSpan({ name: `heavy calc ${run}`, op: "function" }, () => ({ fib: fib(31) })),
-
-  metrics: (run) => {
-    Sentry.metrics.count("checkout.click", 1, { attributes: { run } });
-    Sentry.metrics.distribution("checkout.basket_cents", 300 + Math.round(Math.random() * 900), {
-      unit: "none",
-      attributes: { run },
-    });
-    Sentry.metrics.gauge("queue.depth", Math.round(Math.random() * 50), { attributes: { run } });
-    return { metrics: 3 };
-  },
-
-  cron: (run) =>
-    Sentry.withMonitor(
-      "playground-nightly-report",
-      () => sqlSpan("select count(*) from orders"),
-      // yearly schedule: the monitor never flags a "missed" run between clicks
-      { schedule: { type: "crontab", value: "0 3 1 1 *" }, checkinMargin: 5, maxRuntime: 5 },
-    ) && { monitor: "playground-nightly-report" },
-};
 
 api.post("/showcase/:kind", async (req, res) => {
   const fn = showcase[req.params.kind];
   if (!fn) return res.status(404).json({ error: "unknown kind" });
-  const out = await scoped(req, fn);
+  const dsn = visitorDsn(req, res);
+  if (dsn === null) return;
+  if (dsn) {
+    if (workers >= 4) return res.status(429).json({ error: "Busy, try again in a few seconds" });
+    const { run, fresh = true } = req.body;
+    return res.json(await runWorker({ kind: req.params.kind, run, fresh, dsn }, req));
+  }
+  const out = await scoped(req.body || {}, fn);
   await Sentry.flush(2000);
   res.json(out || {});
 });
@@ -122,17 +93,26 @@ api.post("/sdk/:id", async (req, res) => {
   const sdk = SDKS.find((s) => s.id === req.params.id);
   if (!sdk) return res.status(404).json({ error: "unknown sdk" });
   const { run, fresh = true, kind = "error" } = req.body || {};
+  const dsn = visitorDsn(req, res);
+  if (dsn === null) return;
 
   if (sdk.mode === "server") {
     const r = await fetch(`http://${sdk.service}${sdk.path || "/trigger"}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ run, fresh, kind }),
+      body: JSON.stringify({ run, fresh, kind, ...(dsn && { dsn }) }),
       signal: AbortSignal.timeout(20_000),
     });
     return res.status(r.status).json(await r.json().catch(() => ({ error: "bad reply" })));
   }
 
+  if (dsn) {
+    // CI builds upload their symbols with our token into our org, and run logs
+    // are public. With a visitor's DSN the stack traces would stay obfuscated.
+    return res.status(400).json({
+      error: `Runs in our GitHub Actions, can't use your DSN. Fork ${sdk.repo} and set your own secrets.`,
+    });
+  }
   if (limited(`ci:${sdk.id}`, 1, 180_000)) {
     return res.status(429).json({ error: "This one runs in CI, one run per 3 minutes please" });
   }

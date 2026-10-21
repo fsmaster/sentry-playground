@@ -75,3 +75,29 @@ output.ok code { color: var(--ok); }
 }
 #replay-demo input { font: inherit; padding: 6px; width: min(320px, 100%); }
 footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
+.toggle + .toggle { margin-left: 18px; }
+.byo {
+  display: grid;
+  gap: 8px;
+  max-width: 760px;
+  margin: 10px 0 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+}
+.byo textarea, .byo input {
+  width: 100%;
+  font: 13px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
+  padding: 8px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  resize: vertical;
+}
+.byo button { justify-self: start; }
+.byo .sub { margin: 0; font-size: 13px; }
+#byo-state:empty { display: none; }
+#byo-state { margin: 6px 0 0; }
+@media (max-width: 600px) { .toggle + .toggle { margin-left: 0; display: flex; margin-top: 6px; } }
