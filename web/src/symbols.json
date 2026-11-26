@@ -148,5 +148,21 @@
       "curl the endpoint by hand with the same file to see the answer",
       "Form field must be upload_file_minidump"
     ]
+  },
+  {
+    "id": "bad-value",
+    "title": "11. Bonus: the bad value is in a register",
+    "version": "1.0.8",
+    "dump": "crashlab-1.0.8-divide.dmp",
+    "project": "lab",
+    "state": "good",
+    "uploaded": "crashlab.exe + crashlab.pdb + source bundle. Another bug this time: average_score(total, games) with games = 0",
+    "see": "EXCEPTION_INT_DIVIDE_BY_ZERO in average_score, crashlab.cpp:86. Expand the top frame, Registers: rax = 0x3d7 (total), r8 = 0 (games).",
+    "why": "The code is mov r8d,edx / mov eax,ecx / cdq / idiv r8d. The divisor came in edx and was moved to r8, so r8 = 0 is the bad argument. rdx is 0 too, but only because cdq overwrote it. Sentry shows raw registers of the top frame, it does not tell you which one is which argument.",
+    "fix": [
+      "Registers are exact only for the crashing frame",
+      "Windows x64 args: rcx, rdx, r8, r9. Linux/macOS: rdi, rsi, rdx, rcx, r8, r9. Valid at function entry, later the code may reuse them",
+      "To map a register to a variable you need the disassembly: dumpbin /disasm, objdump -d, or a debugger with the dump"
+    ]
   }
 ]

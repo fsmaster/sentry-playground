@@ -5,6 +5,7 @@
 // what every missing piece does to the stack trace.
 //
 //   crashlab.exe crash <run>    real access violation, crashpad writes a minidump
+//   crashlab.exe divide <run>   integer divide by zero, the divisor is an argument
 //   crashlab.exe error <run>    handled event with a stack trace, no minidump
 //
 // The crash happens inside a callback that the C runtime calls (qsort), so the
@@ -78,6 +79,23 @@ __declspec(noinline) static int finish_match(const char *run)
     return 0;
 }
 
+// second bug, for the registers demo: the bad value is an argument.
+// Windows x64 passes total in ecx and games in edx.
+__declspec(noinline) static int average_score(int total, int games)
+{
+    return total / games; // <- integer divide by zero when games == 0
+}
+
+__declspec(noinline) static int show_average(const char *run, int games)
+{
+    int total = 0;
+    for (const char *c = run; *c; c++) {
+        total += *c;
+    }
+    printf("average: %d\n", average_score(total, games));
+    return 0;
+}
+
 static std::string env_or(const char *key, const char *fallback)
 {
     const char *v = getenv(key);
@@ -104,6 +122,12 @@ int main(int argc, char **argv)
         printf("crashlab %s: crashing, crashpad writes the minidump...\n", APP_VERSION);
         fflush(stdout);
         return finish_match(run);
+    }
+
+    if (kind[0] == 'd') {
+        printf("crashlab %s: dividing by zero...\n", APP_VERSION);
+        fflush(stdout);
+        return show_average(run, argc - 3); // 3 args on the command line -> 0 games
     }
 
     sentry_value_t event = sentry_value_new_event();

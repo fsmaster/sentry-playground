@@ -20,6 +20,7 @@ that were uploaded to the Sentry project are different.
 | 1.0.0 | all, project without Microsoft symbols | stack stops at ucrtbase |
 | 1.0.0 | all, dump cut at 60 KB | one frame |
 | - | a text file as the dump | HTTP 400, no event |
+| 1.0.8 | all, a divide by zero | the zero divisor is visible in the registers |
 
 ## Build it yourself
 
