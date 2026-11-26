@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { execFile } from "node:child_process";
 import { showcase, scoped } from "./showcase.js";
 import { parseDsn } from "./dsn.js";
+import { sendScenario } from "./symbols.js";
 
 const SDKS = JSON.parse(readFileSync(new URL("../web/src/sdks.json", import.meta.url)));
 const PORT = process.env.PORT || 3090;
@@ -131,9 +132,20 @@ api.post("/sdk/:id", async (req, res) => {
   res.json({ ci: `https://github.com/${sdk.repo}/actions/workflows/${sdk.workflow}` });
 });
 
+// --- debug symbols lab: replay a recorded minidump ---------------------------
+api.post("/symbols/:id", async (req, res) => {
+  const dsn = visitorDsn(req, res);
+  if (dsn === null) return;
+  const { run, fresh = false } = req.body || {};
+  const out = await sendScenario(req.params.id, { run, fresh, dsn });
+  res.status(out.status).json(out.body);
+});
+
 api.get("/health", (req, res) => res.json({ ok: true }));
 
 app.use("/sentry/api", api);
+// recorded minidumps, to download and send by hand
+app.use("/sentry/symbols/dumps", express.static(fileURLToPath(new URL("../symbols-lab/dumps", import.meta.url))));
 app.use(
   "/sentry",
   express.static(fileURLToPath(new URL("../dist", import.meta.url)), {

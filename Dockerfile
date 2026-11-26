@@ -17,7 +17,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY server server
-COPY web/src/sdks.json web/src/sdks.json
+COPY web/src/sdks.json web/src/symbols.json web/src/
+COPY symbols-lab/dumps symbols-lab/dumps
 COPY --from=web /app/dist dist
 ARG RELEASE=dev
 ENV RELEASE=${RELEASE} NODE_ENV=production PORT=3090

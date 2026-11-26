@@ -102,3 +102,38 @@ footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
 #byo-state { margin: 6px 0 0; }
 @media (max-width: 600px) { .toggle + .toggle { margin-left: 0; display: flex; margin-top: 6px; } }
 #byo-msg:empty { display: none; }
+
+/* --- debug symbols lab ---------------------------------------------------- */
+.crumb { margin: 0 0 8px; font-size: 14px; }
+.grid.wide { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+.scenario { border-left-width: 4px; }
+.scenario.good { border-left-color: var(--ok); }
+.scenario.warn { border-left-color: #d9a441; }
+.scenario.bad { border-left-color: var(--err); }
+.scenario dl { margin: 0; display: grid; grid-template-columns: 74px 1fr; gap: 4px 8px; font-size: 14px; }
+.scenario dt { color: var(--muted); }
+.scenario dd { margin: 0; }
+.scenario details { font-size: 13px; }
+.scenario summary { cursor: pointer; color: var(--accent); }
+.scenario ul { margin: 6px 0 0; padding-left: 18px; }
+.scenario li { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; overflow-wrap: anywhere; }
+.files { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; }
+.halves { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: stretch; margin: 12px 0; }
+.halves section { padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+.halves h3 { margin: 0 0 6px; font-size: 16px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.halves p { margin: 0; font-size: 14px; }
+.join { align-self: center; text-align: center; font-size: 12px; color: var(--accent); border: 1px dashed var(--accent); border-radius: 8px; padding: 8px 10px; }
+.steps { max-width: 860px; padding-left: 22px; }
+.steps li { margin: 6px 0; }
+pre {
+  margin: 6px 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  font: 13px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.92em; }
+@media (max-width: 760px) { .halves { grid-template-columns: 1fr; } }
+[hidden] { display: none !important; }

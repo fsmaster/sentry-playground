@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Debug symbols lab · Sentry Playground</title>
+    <meta name="description" content="One C++ crash, ten builds. See what every missing debug file does to a Sentry stack trace, and how to fix it." />
+  </head>
+  <body>
+    <main>
+      <p class="crumb"><a href="../">← Sentry Playground</a></p>
+      <h1>Debug symbols lab</h1>
+      <p class="lead">
+        One small C++ program for Windows, one crash, several builds. The code and the crash are always the same.
+        Only what was uploaded to Sentry is different. Every button sends a <b>real minidump</b> of that build,
+        so you see what each missing piece does to the stack trace.
+        Source is in <a href="https://github.com/fsmaster/sentry-playground/tree/main/symbols-lab">symbols-lab/</a>.
+      </p>
+      <label class="toggle"><input type="checkbox" id="fresh" /> New issue every click</label>
+      <label class="toggle"><input type="checkbox" id="byo" /> Use my DSN (do the exercise in your own project)</label>
+      <p id="byo-state" class="sub"></p>
+      <div id="byo-box" class="byo" hidden>
+        <textarea id="byo-dsn" rows="2" spellcheck="false" placeholder="https://<key>@o123.ingest.us.sentry.io/456"></textarea>
+        <button id="byo-apply" type="button">Apply</button>
+        <output id="byo-msg"></output>
+        <p class="sub">Any sentry.io project. Your project has no symbols for crashlab yet, so every crash comes broken. That is the exercise, see below.</p>
+      </div>
+
+      <h2>Dump and symbols are two halves</h2>
+      <div class="halves">
+        <section>
+          <h3>Minidump <span class="badge">made at crash time, on the user's machine</span></h3>
+          <p>A snapshot of the dead process: threads, CPU registers, raw stack memory, and the list of loaded
+            modules with their <b>Debug IDs</b>. It says <i>what happened</i>, but only in numbers:
+            <code>crashlab.exe +0x15f4</code>.</p>
+        </section>
+        <div class="join">Debug ID<br />must match</div>
+        <section>
+          <h3>Debug files <span class="badge">made at build time, on the build machine</span></h3>
+          <p>The map for one exact build: address → function, file, line (PDB / DWARF / dSYM), plus the unwind
+            info to walk the stack (in the EXE on 64-bit Windows). It says nothing about any crash.</p>
+        </section>
+      </div>
+      <p class="sub">Sentry joins them on the server (Symbolicator). No match for the Debug ID = no names. The dump can't be fixed later, the symbols can be uploaded later.</p>
+
+      <h2>Scenarios</h2>
+      <p class="sub">Click, open the issue, compare with the card. <b>Images Loaded</b> at the bottom of the event shows the status of every module.</p>
+      <section id="scenarios" class="grid wide"></section>
+
+      <h2>Exercise: fix it in your own project</h2>
+      <ol class="steps">
+        <li>Create a project with platform <b>Native</b> in your Sentry org. Tick <b>Use my DSN</b> above and paste its DSN.</li>
+        <li>Send scenario 2. Open the event: Processing Error, <code>&lt;unknown&gt;</code> frames. Copy the Debug ID from the error.</li>
+        <li>Download <a data-dl="crashlab-1.0.1-symbols.zip">crashlab-1.0.1-symbols.zip</a>, unzip, and check it is the right file:
+          <pre>sentry-cli debug-files check crashlab.pdb</pre></li>
+        <li>Upload and wait until Sentry processed it:
+          <pre>sentry-cli debug-files upload --wait -o ORG -p PROJECT crashlab.exe crashlab.pdb crashlab.src.zip</pre></li>
+        <li>Send scenario 2 again. Now it is readable. The old event is still broken: uploads work only for new events (or reprocess the issue, if the project stores minidumps).</li>
+        <li>Now do 3 with <a data-dl="crashlab-1.0.2-WRONG-rebuild.zip">the wrong zip</a> first, and find out from the IDs why it does not help.
+          Then 4, 5 and 6: upload one file at a time and watch <b>Images Loaded</b> change.</li>
+        <li>Scenario 8: remove <b>Microsoft</b> in Project Settings → Debug Files → Built-in Repositories, send 1 again and count the frames.</li>
+      </ol>
+
+      <h2>Toolbox</h2>
+      <div class="tools">
+        <pre># what is inside this file: type, Debug ID, what features it has
+sentry-cli debug-files check crashlab.pdb
+
+# is there a file with this ID in the project?
+sentry-cli debug-files find -o ORG -p PROJECT dc70c17b-d25f-4dd3-94ab-e73d3dbbfbc4-1
+
+# upload a folder: finds exe/dll/pdb/so/dSYM inside, also in zips
+sentry-cli debug-files upload --wait --include-sources -o ORG -p PROJECT ./build
+
+# send a dump by hand, no SDK needed
+curl -X POST 'https://oORG.ingest.us.sentry.io/api/PROJECT/minidump/?sentry_key=KEY' \
+  -F upload_file_minidump=@crash.dmp \
+  -F 'sentry={"release":"crashlab@1.0.1"}'
+
+# Windows: GUID + age of a binary, without Sentry tools
+dumpbin /headers crashlab.exe | findstr /i "RSDS"</pre>
+      </div>
+
+      <footer>Links to Sentry open the fsmaster org, you need access to see them. With your own DSN they open your project.</footer>
+    </main>
+    <script type="module" src="/src/symbols.js"></script>
+  </body>
+</html>

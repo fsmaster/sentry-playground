@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import { resolve } from "node:path";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 
 // Source maps are built, uploaded to Sentry and then deleted, so they never
@@ -10,6 +11,8 @@ export default defineConfig({
     outDir: "../dist",
     emptyOutDir: true,
     sourcemap: "hidden",
+    // two pages: the playground and the debug symbols lab
+    rollupOptions: { input: { main: resolve("web/index.html"), symbols: resolve("web/symbols/index.html") } },
   },
   define: {
     __RELEASE__: JSON.stringify(process.env.RELEASE || "dev"),

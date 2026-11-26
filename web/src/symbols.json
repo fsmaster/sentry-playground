@@ -1,0 +1,152 @@
+[
+  {
+    "id": "ok",
+    "title": "1. Everything uploaded",
+    "version": "1.0.0",
+    "dump": "crashlab-1.0.0.dmp",
+    "project": "lab",
+    "state": "good",
+    "uploaded": "crashlab.exe + crashlab.pdb + source bundle",
+    "see": "Function names, file and line, source code around the line. Stack is complete: compare_players ← qsort ← Leaderboard::winner ← finish_match ← main.",
+    "why": "This is how it should look. Sentry found a file with the same Debug ID for every image in the dump.",
+    "fix": []
+  },
+  {
+    "id": "missing",
+    "title": "2. Nothing uploaded",
+    "version": "1.0.1",
+    "dump": "crashlab-1.0.1.dmp",
+    "project": "lab",
+    "state": "bad",
+    "uploaded": "nothing",
+    "see": "Processing Error: “A required debug information file was missing”. Frames are crashlab +0x15f4 <unknown>. The issue is called “qsort”, because it is the only name Sentry could find.",
+    "why": "The dump has only addresses. Without the PDB there is nothing to translate them, and without the EXE Sentry can't even walk the stack properly, so some frames are just guesses (scan).",
+    "fix": [
+      "sentry-cli debug-files check crashlab.pdb   # Debug ID must be the one from the error",
+      "sentry-cli debug-files upload --include-sources -o ORG -p PROJECT ./symbols",
+      "Send the crash again, or Reprocess the issue (needs stored minidumps)"
+    ]
+  },
+  {
+    "id": "wrong-build",
+    "title": "3. Symbols from another build",
+    "version": "1.0.2",
+    "dump": "crashlab-1.0.2.dmp",
+    "project": "lab",
+    "state": "bad",
+    "uploaded": "crashlab.exe + crashlab.pdb, but from a rebuild of the same commit",
+    "see": "Same error as in 2. In Project Settings → Debug Files there IS a crashlab.pdb, and the customer says “but I uploaded it”.",
+    "why": "Name does not matter, the Debug ID does. Every link gives a new GUID to the PDB, even when the code did not change. Rebuilt on another machine = different file for Sentry.",
+    "fix": [
+      "Compare the Debug ID in the event error with: sentry-cli debug-files check crashlab.pdb",
+      "Ask for the PDB from the exact build that was shipped (CI artifact, symbol server)",
+      "Fix the pipeline: upload symbols in the same job that builds the release"
+    ]
+  },
+  {
+    "id": "pdb-only",
+    "title": "4. PDB only, no EXE",
+    "version": "1.0.3",
+    "dump": "crashlab-1.0.3.dmp",
+    "project": "lab",
+    "state": "warn",
+    "uploaded": "crashlab.pdb",
+    "see": "Names and lines are there, but the stack has extra frames that never happened (__scrt_release_startup_lock, truncl$thunk…) and the same “missing” error still shows.",
+    "why": "On 64-bit Windows the unwind info lives in the EXE/DLL, not in the PDB. Without it Sentry scans the stack memory for anything that looks like a return address. Images Loaded shows debug: found, unwind: missing.",
+    "fix": [
+      "Upload the binaries too: sentry-cli debug-files upload ./bin   # .exe and .dll next to .pdb",
+      "sentry-cli debug-files check crashlab.exe   # must say: Contained debug information: unwind"
+    ]
+  },
+  {
+    "id": "exe-only",
+    "title": "5. EXE only, no PDB",
+    "version": "1.0.6",
+    "dump": "crashlab-1.0.6.dmp",
+    "project": "lab",
+    "state": "bad",
+    "uploaded": "crashlab.exe",
+    "see": "The stack has the right number of frames, but every crashlab frame is <unknown>. Error “missing” again.",
+    "why": "The opposite of 4. The EXE gives unwind info (stack is walked correctly) but has no function names. Images Loaded: debug: missing, unwind: found.",
+    "fix": [
+      "Upload the PDB with the same Debug ID"
+    ]
+  },
+  {
+    "id": "stripped-pdb",
+    "title": "6. Stripped (public) PDB",
+    "version": "1.0.4",
+    "dump": "crashlab-1.0.4.dmp",
+    "project": "lab",
+    "state": "warn",
+    "uploaded": "crashlab.exe + PDB made with /PDBSTRIPPED",
+    "see": "Function names, but no file, no line number, no inlined frames. No error at all.",
+    "why": "A stripped PDB keeps only public symbols. Sentry thinks all is fine, because the file with this Debug ID was found. Same happens with strip -g on Linux when only the symbol table is left.",
+    "fix": [
+      "sentry-cli debug-files check crashlab.pdb   # a full one is several MB, stripped is small",
+      "Upload the full private PDB from the build (link with /DEBUG:FULL)"
+    ]
+  },
+  {
+    "id": "no-sources",
+    "title": "7. No source code",
+    "version": "1.0.5",
+    "dump": "crashlab-1.0.5.dmp",
+    "project": "lab",
+    "state": "warn",
+    "uploaded": "crashlab.exe + crashlab.pdb, without --include-sources",
+    "see": "Perfect names and lines, but frames don't expand: no code around the line.",
+    "why": "Debug info has file names and line numbers, not the text of the files. Source context comes from a source bundle (or Source Link for .NET/Portable PDB).",
+    "fix": [
+      "sentry-cli debug-files upload --include-sources ./symbols",
+      "or: sentry-cli debug-files bundle-sources crashlab.pdb, then upload the .src.zip",
+      "The build machine must have the sources at the same paths as in the PDB"
+    ]
+  },
+  {
+    "id": "no-system-symbols",
+    "title": "8. No system symbols",
+    "version": "1.0.0",
+    "dump": "crashlab-1.0.0.dmp",
+    "project": "bare",
+    "state": "warn",
+    "uploaded": "all crashlab files. But “Microsoft” is removed from Built-in Repositories of the project",
+    "see": "Only 2 frames: compare_players and ucrtbase <unknown>. main and the rest of the stack are gone. No error.",
+    "why": "The crash goes through ucrtbase.dll (qsort calls our callback). Sentry can't unwind through a system DLL it has no file for, so the stack walk stops there. System files are never reported as “required”.",
+    "fix": [
+      "Project Settings → Debug Files → Built-in Repositories → add Microsoft (and others the app needs)",
+      "For OEM / driver DLLs that are on no public server: customer adds a Custom Repository or uploads them"
+    ]
+  },
+  {
+    "id": "truncated-dump",
+    "title": "9. Truncated minidump",
+    "version": "1.0.0",
+    "dump": "crashlab-truncated.dmp",
+    "project": "lab",
+    "state": "warn",
+    "uploaded": "all crashlab files. The dump file itself was cut at 60 KB",
+    "see": "One frame only (it comes from the CPU registers), no other threads. No error.",
+    "why": "Symbols are fine, the dump is not: the stack memory is missing from the file. Happens with size limits on proxies, disk full, process killed while writing.",
+    "fix": [
+      "Download the attachment and look at the size; compare with a healthy dump",
+      "Check upload limits (Sentry takes up to 40 MB compressed, a proxy in the middle often less)"
+    ]
+  },
+  {
+    "id": "not-a-dump",
+    "title": "10. Not a minidump",
+    "version": "1.0.0",
+    "dump": "not-a-dump.dmp",
+    "project": "lab",
+    "state": "bad",
+    "uploaded": "all crashlab files. The uploaded “dump” is a text file",
+    "see": "Nothing in Issues. The endpoint answers HTTP 400 {\"detail\":\"invalid minidump\"}, the event is dropped.",
+    "why": "The minidump endpoint checks the MDMP magic bytes. Customers hit this with a wrong form field name, gzip without the header, or a full Windows dump in another format.",
+    "fix": [
+      "Stats → Invalid shows the dropped events",
+      "curl the endpoint by hand with the same file to see the answer",
+      "Form field must be upload_file_minidump"
+    ]
+  }
+]
